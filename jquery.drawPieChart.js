@@ -27,21 +27,20 @@
         edgeOffset: 20,//offset from edge of $this
         pieSegmentGroupClass: "pieSegmentGroup",
         pieSegmentClass: "pieSegment",
-        lightPiesOffset: 10,
-        lightPiesOpacity: .2,
+        lightPiesOffset: 10,//lighten pie's width
+        lightPiesOpacity: .2,//lighten pie's default opacity
         lightPieClass: "lightPie",
         animation : true,
         animationSteps : 90,
         animationEasing : "easeInOutExpo",
-        animateRotate : true,
         tipOffsetX: -10,
         tipOffsetY: -45,
         tipClass: "pieTip",
         beforeDraw: function(){  },
         afterDrawed : function(){  },
-        onPathEnter : function(e,data){  },
-        onPathLeave : function(e,data){  },
-        onPathClick : function(e,data){  }
+        onPieMouseenter : function(e,data){  },
+        onPieMouseleave : function(e,data){  },
+        onPieClick : function(e,data){  }
       }, options),
       animationOptions = {
         linear : function (t){
@@ -63,8 +62,6 @@
         };
     }();
 
-    settings.beforeDraw.call($this);
-
     var $svg = $('<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"></svg>').appendTo($this),
       $groups = [],
       $pies = [],
@@ -72,6 +69,8 @@
       easingFunction = animationOptions[settings.animationEasing],
       pieRadius = Min([H/2,W/2]) - settings.edgeOffset,
       segmentTotal = 0;
+
+    settings.beforeDraw.call($this);
 
     //Draw base circle
     var drawBasePie = function(){
@@ -132,7 +131,7 @@
       if ($groups[index][0].getAttribute("data-active") !== "active"){
         $lightPies[index].animate({opacity: .7}, 100);
       }
-      settings.onPathEnter.apply($(this),[e,data]);
+      settings.onPieMouseenter.apply($(this),[e,data]);
     }
     function pathMouseLeave(e){
       var index = $(this).data().order;
@@ -140,7 +139,7 @@
       if ($groups[index][0].getAttribute("data-active") !== "active"){
         $lightPies[index].animate({opacity: settings.lightPiesOpacity}, 100);
       }
-      settings.onPathLeave.apply($(this),[e,data]);
+      settings.onPieMouseleave.apply($(this),[e,data]);
     }
     function pathMouseMove(e){
       $tip.css({
@@ -156,12 +155,12 @@
       }
       $lightPies[index].css({opacity: 1});
       $groups[index][0].setAttribute("data-active","active");
-      settings.onPathClick.apply($(this),[e,data]);
+      settings.onPieClick.apply($(this),[e,data]);
     }
     function drawPieSegments (animationDecimal){
       var startRadius = -Math.PI/2,//-90 degree
         rotateAnimation = 1;
-      if (settings.animation && settings.animateRotate) {
+      if (settings.animation) {
         rotateAnimation = animationDecimal;//count up between0~1
       }
 
