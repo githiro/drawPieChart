@@ -1,6 +1,6 @@
 /*!
  * jquery.drawPieChart.js
- * Version: 0.2(Beta)
+ * Version: 0.3(Beta)
  * Inspired by Chart.js(http://www.chartjs.org/)
  *
  * Copyright 2013 hiro
@@ -28,7 +28,7 @@
         pieSegmentGroupClass: "pieSegmentGroup",
         pieSegmentClass: "pieSegment",
         lightPiesOffset: 12,//lighten pie's width
-        lightPiesOpacity: .15,//lighten pie's default opacity
+        lightPiesOpacity: .1,//lighten pie's default opacity
         lightPieClass: "lightPie",
         animation : true,
         animationSteps : 90,
@@ -50,41 +50,42 @@
           var v = t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t;
           return (v>1) ? 1 : v;
         }
-      };
-    var requestAnimFrame = function(){
-      return window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.oRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        function(callback) {
-          window.setTimeout(callback, 1000 / 60);
-        };
-    }();
+      },
+      requestAnimFrame = function(){
+        return window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function(callback) {
+            window.setTimeout(callback, 1000 / 60);
+          };
+      }();
 
-    var $svg = $('<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"></svg>').appendTo($this),
-      $groups = [],
-      $pies = [],
-      $lightPies = [],
-      easingFunction = animationOptions[settings.animationEasing],
-      pieRadius = Min([H/2,W/2]) - settings.edgeOffset,
-      segmentTotal = 0;
+    var $wrapper = $('<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"></svg>').appendTo($this);
+    var $groups = [],
+        $pies = [],
+        $lightPies = [],
+        easingFunction = animationOptions[settings.animationEasing],
+        pieRadius = Min([H/2,W/2]) - settings.edgeOffset,
+        segmentTotal = 0,
+        cachedDatas = {};
 
     settings.beforeDraw.call($this);
 
     //Draw base circle
     var drawBasePie = function(){
-      var svgBase = document.createElementNS('http://www.w3.org/2000/svg', 'circle'),
-        $svgBase = $(svgBase).appendTo($svg);
-      $svgBase[0].setAttribute("cx", centerX);
-      $svgBase[0].setAttribute("cy", centerY);
-      $svgBase[0].setAttribute("r", pieRadius+settings.baseOffset);
-      $svgBase[0].setAttribute("fill", settings.baseColor);
+      var base = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      var $base = $(base).appendTo($wrapper);
+      base.setAttribute("cx", centerX);
+      base.setAttribute("cy", centerY);
+      base.setAttribute("r", pieRadius+settings.baseOffset);
+      base.setAttribute("fill", settings.baseColor);
     }();
 
     //Set up pie segments wrapper
     var pathGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    var $pathGroup = $(pathGroup).appendTo($svg);
+    var $pathGroup = $(pathGroup).appendTo($wrapper);
     $pathGroup[0].setAttribute("opacity",0);
 
     //Set up tooltip
@@ -123,7 +124,7 @@
     }
 
     //Animation start
-    animationLoop(drawPieSegments);
+    triggerAnimation();
 
     function pathMouseEnter(e){
       var index = $(this).data().order;
@@ -165,8 +166,8 @@
       settings.onPieClick.apply($(this),[e,data]);
     }
     function drawPieSegments (animationDecimal){
-      var startRadius = -Math.PI/2,//-90 degree
-        rotateAnimation = 1;
+      var startRadius = -PI/2,//-90 degree
+          rotateAnimation = 1;
       if (settings.animation) {
         rotateAnimation = animationDecimal;//count up between0~1
       }
@@ -175,17 +176,17 @@
 
       //draw each path
       for (var i = 0, len = data.length; i < len; i++){
-        var segmentAngle = rotateAnimation * ((data[i].value/segmentTotal) * (PI*2)),
-          endRadius = startRadius + segmentAngle,
-          largeArc = ((endRadius - startRadius) % (PI * 2)) > PI ? 1 : 0,
-          startX = centerX + cos(startRadius) * pieRadius,
-          startY = centerY + sin(startRadius) * pieRadius,
-          endX = centerX + cos(endRadius) * pieRadius,
-          endY = centerY + sin(endRadius) * pieRadius,
-          startX2 = centerX + cos(startRadius) * (pieRadius + settings.lightPiesOffset),
-          startY2 = centerY + sin(startRadius) * (pieRadius + settings.lightPiesOffset),
-          endX2 = centerX + cos(endRadius) * (pieRadius + settings.lightPiesOffset),
-          endY2 = centerY + sin(endRadius) * (pieRadius + settings.lightPiesOffset);
+        var segmentAngle = rotateAnimation * ((data[i].value/segmentTotal) * (PI*2)),//start radian
+            endRadius = startRadius + segmentAngle,
+            largeArc = ((endRadius - startRadius) % (PI * 2)) > PI ? 1 : 0,
+            startX = centerX + cos(startRadius) * pieRadius,
+            startY = centerY + sin(startRadius) * pieRadius,
+            endX = centerX + cos(endRadius) * pieRadius,
+            endY = centerY + sin(endRadius) * pieRadius,
+            startX2 = centerX + cos(startRadius) * (pieRadius + settings.lightPiesOffset),
+            startY2 = centerY + sin(startRadius) * (pieRadius + settings.lightPiesOffset),
+            endX2 = centerX + cos(endRadius) * (pieRadius + settings.lightPiesOffset),
+            endY2 = centerY + sin(endRadius) * (pieRadius + settings.lightPiesOffset);
         var cmd = [
           'M', startX, startY,//Move pointer
           'A', pieRadius, pieRadius, 0, largeArc, 1, endX, endY,//Draw outer arc path
@@ -204,44 +205,29 @@
       }
     }
 
-    function animateFrame(cnt, drawData){
-      var easeAdjustedAnimationPercent =(settings.animation)? CapValue(easingFunction(cnt),null,0) : 1;
-      drawData(easeAdjustedAnimationPercent);
+    var animFrameAmount = (settings.animation)? 1/settings.animationSteps : 1,//if settings.animationSteps is 10, animFrameAmount is 0.1
+        animCount =(settings.animation)? 0 : 1;
+    function triggerAnimation(){
+      if (settings.animation) {
+        requestAnimFrame(animationLoop);
+      } else {
+        drawPieSegments(1);
+      }
     }
-    function animationLoop(drawData){
-      var animFrameAmount = (settings.animation)? 1/CapValue(settings.animationSteps,Number.MAX_VALUE,1) : 1,
-        cnt =(settings.animation)? 0 : 1;
-      requestAnimFrame(function(){
-          cnt += animFrameAmount;
-          animateFrame(cnt, drawData);
-          if (cnt <= 1){
-            requestAnimFrame(arguments.callee);
-          } else {
-            settings.afterDrawed.call($this);
-          }
-      });
+    function animationLoop(){
+      animCount += animFrameAmount;//animCount start from 0, after "settings.animationSteps"-times executed, animCount reaches 1.
+      drawPieSegments(easingFunction(animCount));
+      if (animCount < 1){
+        requestAnimFrame(arguments.callee);
+      } else {
+        settings.afterDrawed.call($this);
+      }
     }
     function Max(arr){
       return Math.max.apply(null, arr);
     }
     function Min(arr){
       return Math.min.apply(null, arr);
-    }
-    function isNumber(n) {
-      return !isNaN(parseFloat(n)) && isFinite(n);
-    }
-    function CapValue(valueToCap, maxValue, minValue){
-      if(isNumber(maxValue)) {
-        if( valueToCap > maxValue ) {
-          return maxValue;
-        }
-      }
-      if(isNumber(minValue)){
-        if ( valueToCap < minValue ){
-          return minValue;
-        }
-      }
-      return valueToCap;
     }
     return $this;
   };
