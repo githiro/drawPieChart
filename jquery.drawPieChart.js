@@ -1,6 +1,6 @@
 /*!
  * jquery.drawPieChart.js
- * Version: 0.1(Beta)
+ * Version: 0.2(Beta)
  * Inspired by Chart.js(http://www.chartjs.org/)
  *
  * Copyright 2013 hiro
@@ -23,17 +23,17 @@
         segmentStrokeColor : "#fff",
         segmentStrokeWidth : 1,
         baseColor: "#fff",
-        baseOffset: 15,
+        baseOffset: 13,
         edgeOffset: 20,//offset from edge of $this
         pieSegmentGroupClass: "pieSegmentGroup",
         pieSegmentClass: "pieSegment",
-        lightPiesOffset: 10,//lighten pie's width
-        lightPiesOpacity: .2,//lighten pie's default opacity
+        lightPiesOffset: 12,//lighten pie's width
+        lightPiesOpacity: .15,//lighten pie's default opacity
         lightPieClass: "lightPie",
         animation : true,
         animationSteps : 90,
         animationEasing : "easeInOutExpo",
-        tipOffsetX: -10,
+        tipOffsetX: -15,
         tipOffsetY: -45,
         tipClass: "pieTip",
         beforeDraw: function(){  },
@@ -117,7 +117,7 @@
       lp.setAttribute("stroke", settings.segmentStrokeColor);
       lp.setAttribute("stroke-miterlimit", 2);
       lp.setAttribute("fill", data[i].color);
-      lp.setAttribute("opacity", 1);
+      lp.setAttribute("opacity", settings.lightPiesOpacity);
       lp.setAttribute("class", settings.lightPieClass);
       $lightPies[i] = $(lp).appendTo($groups[i]);
     }
@@ -129,7 +129,7 @@
       var index = $(this).data().order;
       $tip.text(data[index].title + ": " + data[index].value).fadeIn(200);
       if ($groups[index][0].getAttribute("data-active") !== "active"){
-        $lightPies[index].animate({opacity: .7}, 100);
+        $lightPies[index].animate({opacity: .8}, 180);
       }
       settings.onPieMouseenter.apply($(this),[e,data]);
     }
@@ -149,12 +149,19 @@
     }
     function pathClick(e){
       var index = $(this).data().order;
+      var targetGroup = $groups[index][0];
       for (var i = 0, len = data.length; i < len; i++){
+        if (i === index) continue;
         $groups[i][0].setAttribute("data-active","");
         $lightPies[i].css({opacity: settings.lightPiesOpacity});
       }
-      $lightPies[index].css({opacity: 1});
-      $groups[index][0].setAttribute("data-active","active");
+      if (targetGroup.getAttribute("data-active") === "active"){
+        targetGroup.setAttribute("data-active","");
+        $lightPies[index].css({opacity: .8});
+      } else {
+        targetGroup.setAttribute("data-active","active");
+        $lightPies[index].css({opacity: 1});
+      }
       settings.onPieClick.apply($(this),[e,data]);
     }
     function drawPieSegments (animationDecimal){
@@ -210,9 +217,6 @@
           if (cnt <= 1){
             requestAnimFrame(arguments.callee);
           } else {
-            for (var i = 0, len = data.length; i < len; i++){
-              $lightPies[i].animate({opacity: settings.lightPiesOpacity}, 250);
-            }
             settings.afterDrawed.call($this);
           }
       });
