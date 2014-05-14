@@ -150,6 +150,8 @@
     }
     function pathClick(e){
       var index = $(this).data().order;
+      if (typeof data[index].action != "undefined") 
+          data[index].action();
       var targetGroup = $groups[index][0];
       for (var i = 0, len = data.length; i < len; i++){
         if (i === index) continue;
